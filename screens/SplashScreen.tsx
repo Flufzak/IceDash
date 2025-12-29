@@ -8,7 +8,7 @@ type Props = {
 
 export default function SplashScreen({ onDone }: Props) {
   useEffect(() => {
-    const t = setTimeout(onDone, 2000); // 2s
+    const t = setTimeout(onDone, 2500); // 2s
     return () => clearTimeout(t);
   }, [onDone]);
 
