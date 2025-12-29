@@ -1,7 +1,8 @@
-export const PENGUIN_WALK_FRAMES = [
-  require('./assets/penguin/walk/0.png'),
-  require('./assets/penguin/walk/1.png'),
-  require('./assets/penguin/walk/2.png'),
-  require('./assets/penguin/walk/3.png'),
-  require('./assets/penguin/walk/4.png'),
+import { ImageSourcePropType } from 'react-native';
+
+export const PENGUIN_WALK_FRAMES: ImageSourcePropType[] = [
+    require('./assets/pinguin/walk/1.png'),
+    require('./assets/pinguin/walk/2.png'),
+    require('./assets/pinguin/walk/3.png'),
+    require('./assets/pinguin/walk/4.png')
 ];
