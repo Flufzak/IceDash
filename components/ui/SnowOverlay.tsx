@@ -23,7 +23,7 @@ export function SnowOverlay() {
 const Flake = memo(function Flake({ seed }: { seed: number }) {
   const x = Math.floor(Math.random() * width);
   const size = 10 + (seed % 4) * 2; // zichtbaar
-  const duration = 1800 + (seed % 10) * 220; // sneller = meer "sneeuw gevoel"
+  const duration = 1800 + (seed % 10) * 200; // sneller = meer "sneeuw gevoel"
 
   // start overal op het scherm
   const y = useSharedValue(Math.random() * height);

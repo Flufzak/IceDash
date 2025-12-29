@@ -1,16 +1,16 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet, ImageSourcePropType } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, StyleSheet, ImageSourcePropType, Image } from 'react-native';
 import Animated, {
   SharedValue,
   useSharedValue,
   useAnimatedStyle,
   useFrameCallback,
+  runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, TapGesture } from 'react-native-gesture-handler';
 
 import { PENGUIN_WALK_FRAMES } from '../penguinFrames';
 
-// game modules (hou GameScene klein)
 import {
   GROUND_Y,
   PENGUIN_SIZE,
@@ -28,6 +28,8 @@ import { useClouds } from '../game/useClouds';
 import { RenderObstacle } from '../game/renderObstacle';
 import { RenderCloud } from '../game/renderCloud';
 
+const TAP_TO_PLAY = require('../assets/ui/tap.gif');
+
 type FrameImageProps = {
   src: ImageSourcePropType;
   index: number;
@@ -37,7 +39,7 @@ type FrameImageProps = {
 
 /**
  * Render één frame (png) en toon het alleen als index == currentFrame.
- * We wisselen met opacity i.p.v. 'source' te updaten, want dat crasht op Android.
+ * We wisselen met opacity i.p.v. 'source' te updaten (Android-safe).
  */
 function FrameImage({ src, index, currentFrame, size }: FrameImageProps) {
   const style = useAnimatedStyle(() => ({
@@ -57,30 +59,54 @@ function FrameImage({ src, index, currentFrame, size }: FrameImageProps) {
 }
 
 export default function GameScene() {
-  // ---- Physics state (UI thread) ----
-  const y = useSharedValue(GROUND_Y - PENGUIN_SIZE); // pinguin y-positie (top-left)
-  const vy = useSharedValue(0);                      // verticale snelheid
-  const grounded = useSharedValue(true);             // staat hij op de grond?
+  // ✅ React state voor UI (overlay/obstacles tonen)
+  const [startedUI, setStartedUI] = useState(false);
 
-  // ---- Runner speed (difficulty scaling) ----
-  const speed = useSharedValue(BASE_SPEED);
+  // ---- Physics (UI thread) ----
+  const y = useSharedValue(GROUND_Y - PENGUIN_SIZE);
+  const vy = useSharedValue(0);
+  const grounded = useSharedValue(true);
 
-  // tijd bijhouden voor speed-up
-  const elapsed = useSharedValue(0);     // totale speeltijd (sec)
-  const lastSpeedUp = useSharedValue(0); // laatste tijdstip van speed-up (sec)
+  // ---- Game state (UI thread) ----
+  const started = useSharedValue(false);
 
-  // ---- Obstacles + clouds (apart beheerd) ----
+  // vóór start: 0, bij start wordt dit BASE_SPEED
+  const speed = useSharedValue(0);
+
+  // wolken mogen al “leven” vóór start
+  const idleCloudSpeed = useSharedValue(BASE_SPEED);
+
+  // difficulty timers
+  const elapsed = useSharedValue(0);
+  const lastSpeedUp = useSharedValue(0);
+
+  // ---- World ----
   const { obstacles, updateObstacles } = useObstacles();
   const { clouds, updateClouds } = useClouds();
 
-  // ---- Sprite animatie state (UI thread) ----
-  const frameIndex = useSharedValue(0);      // welk walk frame tonen we?
-  const walkAccumulator = useSharedValue(0); // tijd-accu om WALK_FPS te halen
+  // ---- Sprite animatie ----
+  const frameIndex = useSharedValue(0);
+  const walkAccumulator = useSharedValue(0);
   const frameCount = PENGUIN_WALK_FRAMES.length;
 
-  // Tap gesture: springen als je op de grond staat
+  // Tap: eerst start, daarna jump
   const tap: TapGesture = useMemo(() => {
     return Gesture.Tap().onEnd((): void => {
+      // eerste tap: start game
+      if (!started.value) {
+        started.value = true;
+        speed.value = BASE_SPEED;
+
+        // reset timers
+        elapsed.value = 0;
+        lastSpeedUp.value = 0;
+
+        // ✅ UI re-renderen zodat overlay weg is + obstacles zichtbaar
+        runOnJS(setStartedUI)(true);
+        return;
+      }
+
+      // daarna: jump
       if (grounded.value) {
         grounded.value = false;
         vy.value = JUMP_VELOCITY;
@@ -88,27 +114,15 @@ export default function GameScene() {
     });
   }, []);
 
-  // Game loop: draait ± 60fps
+  // Game loop
   useFrameCallback((frameInfo): void => {
     const dtMs: number = frameInfo.timeSincePreviousFrame ?? 16;
     const dt: number = dtMs / 1000;
 
-    // 0) Difficulty scaling: elke SPEED_INTERVAL seconden gaat de speed omhoog
-    elapsed.value += dt;
-
-    if (
-      elapsed.value - lastSpeedUp.value >= SPEED_INTERVAL &&
-      speed.value < MAX_SPEED
-    ) {
-      speed.value += SPEED_INCREMENT;
-      lastSpeedUp.value = elapsed.value;
-    }
-
-    // 1) Physics update (jump/fall)
+    // physics
     vy.value += GRAVITY * dt;
     y.value += vy.value * dt;
 
-    // 2) Collision met “grond”
     const groundTop = GROUND_Y - PENGUIN_SIZE;
     if (y.value >= groundTop) {
       y.value = groundTop;
@@ -116,25 +130,36 @@ export default function GameScene() {
       grounded.value = true;
     }
 
-    // 3) World update (clouds parallax + obstacles)
-    updateClouds(dt, speed);
-    updateObstacles(dt, speed);
+    // clouds altijd updaten
+    updateClouds(dt, started.value ? speed : idleCloudSpeed);
 
-    // 4) Walk animatie (enkel als grounded)
+    // obstacles + difficulty pas na start
+    if (started.value) {
+      elapsed.value += dt;
+
+      if (
+        elapsed.value - lastSpeedUp.value >= SPEED_INTERVAL &&
+        speed.value < MAX_SPEED
+      ) {
+        speed.value += SPEED_INCREMENT;
+        lastSpeedUp.value = elapsed.value;
+      }
+
+      updateObstacles(dt, speed);
+    }
+
+    // walk animatie (loopt altijd)
     if (grounded.value && frameCount > 0) {
       walkAccumulator.value += dt;
       const step = 1 / WALK_FPS;
 
       if (walkAccumulator.value >= step) {
         walkAccumulator.value -= step;
-
-        const next = frameIndex.value + 1;
-        frameIndex.value = next >= frameCount ? 0 : next;
+        frameIndex.value = (frameIndex.value + 1) % frameCount;
       }
     }
   });
 
-  // Pinguin beweegt verticaal met translateY
   const penguinStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: y.value }],
   }));
@@ -142,20 +167,21 @@ export default function GameScene() {
   return (
     <GestureDetector gesture={tap}>
       <View style={styles.container}>
-        {/* Wolken eerst renderen zodat ze achteraan zitten */}
+        {/* Wolken */}
         {clouds.map((c, i) => (
           <RenderCloud key={i} cloud={c} />
         ))}
 
-        {/* “IJs” onderaan */}
+        {/* IJs */}
         <View style={styles.ice} />
 
-        {/* Obstakels op de grond */}
-        {obstacles.map((o, i) => (
-          <RenderObstacle key={i} obstacle={o} />
-        ))}
+        {/* Obstakels: enkel na start (React state!) */}
+        {startedUI &&
+          obstacles.map((o, i) => (
+            <RenderObstacle key={i} obstacle={o} />
+          ))}
 
-        {/* Pinguin */}
+        {/* Pinguïn */}
         <Animated.View style={[styles.penguin, penguinStyle]}>
           <View style={{ width: PENGUIN_SIZE, height: PENGUIN_SIZE }}>
             {PENGUIN_WALK_FRAMES.map((src, i) => (
@@ -169,6 +195,13 @@ export default function GameScene() {
             ))}
           </View>
         </Animated.View>
+
+        {/* Tap overlay: enkel voor start (React state!) */}
+        {!startedUI && (
+          <View style={styles.tapOverlay} pointerEvents="none">
+            <Image source={TAP_TO_PLAY} style={styles.tapImage} />
+          </View>
+        )}
       </View>
     </GestureDetector>
   );
@@ -186,6 +219,20 @@ const styles = StyleSheet.create({
   },
   penguin: {
     position: 'absolute',
-    left: 80, // vaste x-positie (runner gevoel)
+    left: 80,
+  },
+  tapOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tapImage: {
+    width: 440,
+    height: 240,
+    resizeMode: 'contain',
   },
 });
