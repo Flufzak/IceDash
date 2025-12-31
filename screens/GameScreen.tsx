@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: GROUND_Y,
-    height: 200,
+    height: 300,
     backgroundColor: '#bfe9ff',
   },
   penguin: {
@@ -233,6 +233,6 @@ const styles = StyleSheet.create({
   tapImage: {
     width: 440,
     height: 240,
-    resizeMode: 'contain',
+    resizeMode: 'stretch',
   },
 });
