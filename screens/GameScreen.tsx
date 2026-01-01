@@ -34,6 +34,10 @@ import { RenderObstacle } from "../game/renderObstacle";
 import { RenderCloud } from "../game/renderCloud";
 import { palette } from "../styles/palette";
 
+import { useDispatch } from "react-redux";
+import { setScore, resetScore } from "../store/gameSlice";
+import ScoreHUD from "../components/ui/ScoreHUD";
+
 const TAP_TO_PLAY = require("../assets/ui/tap.gif");
 
 type FrameImageProps = {
@@ -67,6 +71,21 @@ function FrameImage({ src, index, currentFrame, size }: FrameImageProps) {
 export default function GameScene() {
   // ✅ React state voor UI (overlay/obstacles tonen)
   const [startedUI, setStartedUI] = useState(false);
+
+  const dispatch = useDispatch();
+
+  // score op UI-thread
+  const scoreSV = useSharedValue(0);
+  const scoreDispatchAcc = useSharedValue(0);
+
+  // helper om redux te updaten (via runOnJS)
+  const pushScoreToRedux = (value: number) => {
+    dispatch(setScore(value));
+  };
+  // helper om score te resetten in redux (via runOnJS)
+  const resetScoreInRedux = () => {
+    dispatch(resetScore());
+  };
 
   // ---- Physics (UI thread) ----
   const y = useSharedValue(GROUND_Y - PENGUIN_SIZE);
@@ -107,7 +126,13 @@ export default function GameScene() {
         elapsed.value = 0;
         lastSpeedUp.value = 0;
 
-        // ✅ UI re-renderen zodat overlay weg is + obstacles zichtbaar
+        // ✅ score reset bij start
+        scoreSV.value = 0;
+        scoreDispatchAcc.value = 0;
+        runOnJS(resetScoreInRedux)();
+        runOnJS(pushScoreToRedux)(0);
+
+        //  UI re-renderen zodat overlay weg is + obstacles zichtbaar
         runOnJS(setStartedUI)(true);
         return;
       }
@@ -152,6 +177,17 @@ export default function GameScene() {
       }
 
       updateObstacles(dt, speed);
+
+      // ✅ score groeit pas na start (runner-gevoel)
+      // tweak factor naar smaak: hoger = sneller score
+      scoreSV.value += dt * (speed.value / 10);
+
+      // ✅ throttle redux updates (niet elke frame dispatchen)
+      scoreDispatchAcc.value += dt;
+      if (scoreDispatchAcc.value >= 0.25) {
+        scoreDispatchAcc.value = 0;
+        runOnJS(pushScoreToRedux)(Math.floor(scoreSV.value));
+      }
     }
 
     // walk animatie (loopt altijd)
@@ -206,6 +242,7 @@ export default function GameScene() {
             <Image source={TAP_TO_PLAY} style={styles.tapImage} />
           </View>
         )}
+        <ScoreHUD />
       </View>
     </GestureDetector>
   );

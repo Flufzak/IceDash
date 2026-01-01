@@ -25,6 +25,9 @@
     "web": {
       "favicon": "./assets/favicon_1.png"
     },
-    "plugins": ["expo-audio"]
+    "plugins": [
+      "expo-audio",
+      "expo-font"
+    ]
   }
 }
