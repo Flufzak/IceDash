@@ -5,8 +5,6 @@
 IceDash is een mobile game geïnspireerd op de bekende offline Chrome-dino, maar dan in een ijzige wereld.  
 Je bestuurt een pinguïn die over het ijs rent, obstakels ontwijkt en steeds sneller wordt terwijl de sneeuw rustig blijft vallen.
 
-Dit project werd ontwikkeld als **examenproject Mobile Application Development**.
-
 ---
 
 ## 🧊 Concept
@@ -33,7 +31,7 @@ Dit project werd ontwikkeld als **examenproject Mobile Application Development**
 
 - 🎮 Game loop met physics (gravity, jump velocity)
 - 🐧 Sprite-animaties (walking frames)
-- 🌨️ Constante sneeuwval overlay(togglebaar)
+- 🌨️ Constante sneeuwval overlay (togglebaar)
 - 🧠 State management met **Redux Toolkit**
 - 🔊 Audio manager (muziek togglebaar)
 - 📱 Expo compatible (Android & iOS)
