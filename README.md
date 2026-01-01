@@ -33,9 +33,9 @@ Dit project werd ontwikkeld als **examenproject Mobile Application Development**
 
 - 🎮 Game loop met physics (gravity, jump velocity)
 - 🐧 Sprite-animaties (walking frames)
-- 🌨️ Constante sneeuwval overlay
+- 🌨️ Constante sneeuwval overlay(togglebaar)
 - 🧠 State management met **Redux Toolkit**
-- 🔊 Audio manager (muziek & SFX togglebaar)
+- 🔊 Audio manager (muziek togglebaar)
 - 📱 Expo compatible (Android & iOS)
 - 🧩 Modulair opgebouwd (constants, renderers)
 
