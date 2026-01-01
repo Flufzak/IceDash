@@ -1,15 +1,19 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ImageSourcePropType, Image } from 'react-native';
+import React, { useMemo, useState } from "react";
+import { View, StyleSheet, ImageSourcePropType, Image } from "react-native";
 import Animated, {
   SharedValue,
   useSharedValue,
   useAnimatedStyle,
   useFrameCallback,
   runOnJS,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector, TapGesture } from 'react-native-gesture-handler';
+} from "react-native-reanimated";
+import {
+  Gesture,
+  GestureDetector,
+  TapGesture,
+} from "react-native-gesture-handler";
 
-import { PENGUIN_WALK_FRAMES } from '../penguinFrames';
+import { PENGUIN_WALK_FRAMES } from "../penguinFrames";
 
 import {
   GROUND_Y,
@@ -21,14 +25,16 @@ import {
   SPEED_INCREMENT,
   SPEED_INTERVAL,
   MAX_SPEED,
-} from '../game/constants';
+  PENGUIN_FOOT_OFFSET,
+} from "../game/constants";
 
-import { useObstacles } from '../game/useObstacles';
-import { useClouds } from '../game/useClouds';
-import { RenderObstacle } from '../game/renderObstacle';
-import { RenderCloud } from '../game/renderCloud';
+import { useObstacles } from "../game/useObstacles";
+import { useClouds } from "../game/useClouds";
+import { RenderObstacle } from "../game/renderObstacle";
+import { RenderCloud } from "../game/renderCloud";
+import { palette } from "../styles/palette";
 
-const TAP_TO_PLAY = require('../assets/ui/tap.gif');
+const TAP_TO_PLAY = require("../assets/ui/tap.gif");
 
 type FrameImageProps = {
   src: ImageSourcePropType;
@@ -52,7 +58,7 @@ function FrameImage({ src, index, currentFrame, size }: FrameImageProps) {
       style={[
         StyleSheet.absoluteFillObject,
         style,
-        { width: size, height: size, resizeMode: 'contain' },
+        { width: size, height: size, resizeMode: "contain" },
       ]}
     />
   );
@@ -123,7 +129,7 @@ export default function GameScene() {
     vy.value += GRAVITY * dt;
     y.value += vy.value * dt;
 
-    const groundTop = GROUND_Y - PENGUIN_SIZE;
+    const groundTop = GROUND_Y - PENGUIN_SIZE + PENGUIN_FOOT_OFFSET;
     if (y.value >= groundTop) {
       y.value = groundTop;
       vy.value = 0;
@@ -177,9 +183,7 @@ export default function GameScene() {
 
         {/* Obstakels: enkel na start (React state!) */}
         {startedUI &&
-          obstacles.map((o, i) => (
-            <RenderObstacle key={i} obstacle={o} />
-          ))}
+          obstacles.map((o, i) => <RenderObstacle key={i} obstacle={o} />)}
 
         {/* Pinguïn */}
         <Animated.View style={[styles.penguin, penguinStyle]}>
@@ -208,31 +212,31 @@ export default function GameScene() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#68a2ddff' },
+  container: { flex: 1, backgroundColor: palette.background },
   ice: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     top: GROUND_Y,
     height: 300,
-    backgroundColor: '#bfe9ff',
+    backgroundColor: palette.ground,
   },
   penguin: {
-    position: 'absolute',
+    position: "absolute",
     left: 80,
   },
   tapOverlay: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     top: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   tapImage: {
     width: 440,
     height: 240,
-    resizeMode: 'stretch',
+    resizeMode: "stretch",
   },
 });
