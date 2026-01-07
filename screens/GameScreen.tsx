@@ -270,10 +270,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
+    opacity: 0.6,
   },
   tapImage: {
-    width: 440,
-    height: 240,
-    resizeMode: "stretch",
+    width: 880,
+    height: 480,
+    resizeMode: "contain",
   },
 });
